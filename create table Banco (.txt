@@ -1,0 +1,39 @@
+create table Banco (
+ID_Banco int primary key AUTO_INCREMENT NOT NULL,
+agencia varchar (50) NOT NULL,
+saldo numeric(18,2),
+nome varchar(50)
+);
+
+create table Empresa (
+ID_Empresa INT PRIMARY KEY AUTO_INCREMENT NOT NULL, 
+EMP_RazaoSocial varchar(80) NOT NULL,
+EMP_Tipo INT NOT NULL, 
+EMP_TipoPessoa INT NOT NULL, 
+EMP_CPF_CNPJ varchar(50) NOT NULL, 
+EMP_Tel INT NOT NULL, 
+EMP_Rua varchar(100), 
+EMP_Bairro varchar(100)
+);
+
+create table contas_pagar (
+ID_contapagar int primary key  AUTO_INCREMENT NOT NULL,
+pag_vencimento date NOT NULL,
+pag_pagamento date NOT NULL,
+pag_descrição varchar(100),
+pag_valor numeric(18,2) NOT NULL,
+ID_Empresa INT NOT NULL,
+ID_Banco INT NOT NULL,
+CONSTRAINT fk_empresa FOREIGN KEY (ID_Empresa) REFERENCES Empresa (ID_Empresa),
+CONSTRAINT fk_banco FOREIGN KEY (ID_Banco) REFERENCES Banco (ID_Banco)
+);
+
+create table contas_receber (
+    ID_contareceber int primary key AUTO_INCREMENT NOT NULL,
+    receb_data date NOT NULL,
+    receb_descrição varchar(100),
+    receb_valor numeric(18,2) NOT NULL,
+    ID_Empresa INT NOT NULL,
+    ID_Banco INT NOT NULL,
+    CONSTRAINT fk_empresa2 FOREIGN KEY (ID_Empresa) REFERENCES Empresa (ID_Empresa),
+    CONSTRAINT fk_banco2 FOREIGN KEY (ID_Banco) REFERENCES Banco (ID_Banco));
