@@ -1,3 +1,4 @@
--- GERAR UM RELATORIO QUE MOSTRE O NOME DA EMPRESA, QUANTIDADE DE FATURA AINDA NÃO PAGA E VALOR TOTAL AINDA NÃO PAGO
+-- TOTAL QUE CADA EMPRESA ESTA DEVENDO, MESMO AS QUE NÃO DEVEM NADA
+-- isnull transforma o NULL em 0
 
-select EMP_Razaosocial, sum(Rec_valor) as total, sum(1) as QTD from Empresa, Receber where fkempresa = Idempresa group by EMP_Razaosocial
+select Emp_razaosocial, isnull(sum(rec_valor),0) as total from empresa left join receber on fkempresa = idempresa group by Emp_RazaoSocial
