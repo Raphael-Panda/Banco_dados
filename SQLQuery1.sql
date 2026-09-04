@@ -1,109 +1,78 @@
---criação de variavel precisa ter @ antes do nome
---precisa declarar a variavel antes de usar com declare
---após o declare vem o nome e o valor da variavel @valor numeric(18,2)
---para atribruir um valor a uma variavel usa-se set e/ou select
-
-----------------------------------------------------------------------------------------------------------------------------
-
-declare @totalgeral numeric(18,2)
-
-select @totalgeral = sum(pag_valor)
-from pagar
-where pag_datapagto is null
-
-select emp_razaosocial,
-sum(pag_valor) as totalempresa,
-(sum(pag_valor)/@totalgeral) * 100 as '% do valor em atraso'
-from pagar, empresa 
-
-where fkempresa = idempresa
-and pag_datapagto is null
-group by emp_razaosocial
-having (sum(pag_valor)/@totalgeral) * 100 >= 5
-order by totalempresa desc
-
-----------------------------------------------------------------------------------------------------------------------------
-
-create proc faturas_pagar
+create proc meubackup
 as
-declare @totalgeral numeric(18,2)
-select @totalgeral = sum(pag_valor)
-from pagar
-where pag_datapagto is null
 
-select emp_razaosocial,
-sum(pag_valor) as totalempresa,
-(sum(pag_valor)/@totalgeral) * 100 as '% do valor em atraso'
-from pagar, empresa 
+declare @dia varchar(50)
 
-where fkempresa = idempresa
-and pag_datapagto is null
-group by emp_razaosocial
-having (sum(pag_valor)/@totalgeral) * 100 >= 5
-order by totalempresa desc
+-- traduz para portugues
+set @dia = case datepart(dw,getdate())
+	when 1 then 'bkp_Domingo'
+	when 2 then 'bkp_Segunda'
+	when 3 then 'bkp_Terça'
+	when 4 then 'bkp_Quarta'
+	when 5 then 'bkp_Quinta'
+	when 6 then 'bkp_sexta'
+	when 7 then 'bkp_Sábado'
+end
 
-exec faturas_pagar
+set @dia = 'c:\devc\'+@dia
 
---criando Store Procedure
+backup database uvv to disk = @dia
 
-----------------------------------------------------------------------------------------------------------------------------
+exec meubackup
 
-alter proc faturas_pagar
-(@datainicial date, @datafinal date)
+-- Criar uma SP para efetuar uma rotina de backup semanal criar um backup com um nome diferente para cada dia da semana.
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+create proc insere_fatura
+(@fatura varchar(50),
+@descricao varchar(80),
+@vencimento date,
+@valor numeric(18,2))
 as
-declare @totalgeral numeric(18,2)
-select @totalgeral = sum(pag_valor)
-from pagar
-where pag_datapagto is null
-and pag_datavencimento >= @datainicial
-and pag_datavencimento <= @datafinal
 
-select emp_razaosocial,
-sum(pag_valor) as totalempresa,
-(sum(pag_valor)/@totalgeral) * 100 as '% do valor em atraso'
-from pagar, empresa 
+insert pagar 
+	(pag_fatura, pag_descricao, Pag_DataVencimento, pag_valor)
+values
+	(@fatura, @descricao, @vencimento, @valor)
 
-where fkempresa = idempresa
-and pag_datapagto is null
-and pag_datavencimento >= @datainicial
-and pag_datavencimento <= @datafinal
-group by emp_razaosocial
-having (sum(pag_valor)/@totalgeral) * 100 >= 5
-order by totalempresa desc
+exec insere_fatura @fatura='teste',
+@descricao='novafatura',
+@vencimento='2026/09/04',
+@valor=67000
 
-EXEC faturas_pagar @datainicial = '2026-01-01', @datafinal = '2026-12-12';
+select * from pagar
 
--- buscando agora as faturas com um filtro de data incial e final dentro do store procedure
+--inserir uma fatura no contas a pagar atravez de uma SP
 
-----------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
 
-alter proc faturas_pagar
-(@datainicial date, @datafinal date, @empresa varchar(50))
+create proc insere_fatura
+(@fatura varchar(50),
+@descricao varchar(80),
+@vencimento date,
+@valor numeric(18,2),
+@idpagar int)
 as
-declare @totalgeral numeric(18,2)
-select @totalgeral = sum(pag_valor)
-from pagar, empresa
-where pag_datapagto is null
-and pag_datavencimento >= @datainicial
-and pag_datavencimento <= @datafinal
-and emp_razaosocial like '%' + @empresa + '%'
 
-select emp_razaosocial,
-sum(pag_valor) as totalempresa,
-(sum(pag_valor)/@totalgeral) * 100 as '% do valor em atraso'
-from pagar, empresa 
+if(@idpagar= 0)
+	begin
+		insert pagar 
+			(pag_fatura, pag_descricao, Pag_DataVencimento, pag_valor)
+		values
+			(@fatura, @descricao, @vencimento, @valor)
 
-where fkempresa = idempresa
-and pag_datapagto is null
-and pag_datavencimento >= @datainicial
-and pag_datavencimento <= @datafinal
-and emp_razaosocial like '%' + @empresa + '%'
+		exec insere_fatura @fatura='teste',
+		@descricao='novafatura',
+		@vencimento='2026/09/04',
+		@valor=67000
 
-group by emp_razaosocial
-having (sum(pag_valor)/@totalgeral) * 100 >= 5
-order by totalempresa desc
+	end
+		update pagar set
+			pag_fatura = @fatura,
+			pag_descricao = @descricao,
+			pag_valor = @valor,
+			pag_datavencimento = @vencimento,
+			where IdPagar = @idpagar
 
-EXEC faturas_pagar @datainicial = '2026-01-01', @datafinal = '2026-12-12',
-				   @empresa = 'Atlântica';
-
---agora que possa ser buscada uma empresa em especifico
+--deixar o usuário escolher se deseja fazer um insert ou update baseado no id que for passado
